@@ -1,0 +1,56 @@
+{
+  "consoles": [
+    {
+      "name": "My Mq500M",
+      "ip": "192.168.0.51",
+      "username": "magicQ",
+      "password": "magicQ",
+      "backup_folders": [
+        {
+          "folder": "show\\audio",
+          "include_subfolders": false
+        },
+        {
+          "folder": "show\\bitmaps",
+          "include_subfolders": false
+        },
+        {
+          "folder": "show\\fx",
+          "include_subfolders": false
+        },
+        {
+          "folder": "show\\log",
+          "include_subfolders": false
+        },
+        {
+          "folder": "show",
+          "include_subfolders": false
+        }
+      ],
+      "dest": "C:\\TestbackupMq"
+    },
+    {
+      "name": "My Mq80",
+      "ip": "192.168.0.52",
+      "username": "magicQ",
+      "password": "magicQ",
+      "backup_folders": [
+        {
+          "folder": "show",
+          "include_subfolders": true
+        }
+      ],
+      "dest": "C:\\TestbackupMq"
+    }
+  ],
+  "local_pc": {
+    "src": "C:\\Users\\michael.hugi\\Documents\\MagicQ",
+    "dest": "C:\\TestbackupMq",
+    "backup_folders": [
+      {
+        "folder": "show",
+        "include_subfolders": false
+      }
+    ]
+  }
+}
