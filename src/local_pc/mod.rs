@@ -56,7 +56,7 @@ impl LocalPc {
         }
         let temp = dest.join("temp");
         if temp.exists() {
-            if remove_dir(&temp).is_err() {
+            if std::fs::remove_dir_all(&temp).is_err() {
                 write_red(format!("Could not remove temporary folder {}", str(&temp)).as_ref());
                 return false;
             }
@@ -80,68 +80,6 @@ impl LocalPc {
         write_green("Pc system backuped");
         true
     }
-
-    /*   pub(crate) fn backup_folder(&self, src: &PathBuf, dest: &PathBuf, include_subfolders: bool) -> bool {
-           if !src.exists() {
-               write_red(format!("{} does not exist! ", str(&src)).as_str());
-               return false;
-           }
-
-           if src.is_file() {
-               return self.backup_file(src, dest);
-           }
-
-           if !dest.exists() {
-               if create_dir(dest).is_err() {
-                   write_red(format!("Could not create {}", str(dest)).as_str());
-               }
-           }
-
-           let files = std::fs::read_dir(src);
-           if files.is_err() {
-               return false;
-           }
-           let files = files.unwrap();
-           for file in files {
-               if file.is_err() {
-                   return false;
-               }
-               let file = file.unwrap().path();
-               if file.is_dir() && include_subfolders {
-                   let mut parent_dir = file.clone();
-                   parent_dir.pop();
-                   let parent_dir = str(&dest);
-                   let file_name = str(&file.clone()).replace(parent_dir, "");
-                   let dest = dest.join(file_name);
-                   if !self.backup_folder(&file.as_path().to_path_buf(), &dest, true) {
-                       return false;
-                   }
-               } else if file.is_file() {
-                   let mut parent_dir = file.clone();
-                   parent_dir.pop();
-                   let parent_dir = str(&src);
-                   write_red(format!("partent_dir is {}", parent_dir).as_str());
-                   let file_name = str(&file.clone()).replace(parent_dir + env::fil, "");
-                   write_red(format!("filename is {}", file_name).as_str());
-                   write_red(format!("dest is {}", str(dest)).as_str());
-                   let dest = dest.join(file_name);
-                   if !self.backup_file(&file.as_path().to_path_buf(), &dest) {
-                       return false;
-                   }
-               }
-           }
-
-           true
-       }
-
-
-       pub(crate) fn backup_file(&self, src: &PathBuf, dest: &PathBuf) -> bool {
-           if std::fs::copy(src, dest).is_err() {
-               write_red(format!("Could not copy file {} to {}", str(src), str(dest)).as_str());
-               return false;
-           }
-           true
-       }*/
 
     fn show_error_message(&self) -> bool {
         write_red("Could not backup local pc system");
@@ -208,3 +146,4 @@ pub fn copy_folder<U: AsRef<Path>, V: AsRef<Path>>(from: U, to: V, include_subfo
 
     Ok(())
 }
+
