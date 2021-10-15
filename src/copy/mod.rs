@@ -1,6 +1,4 @@
-use std::borrow::Borrow;
 use std::fs::{create_dir, create_dir_all};
-use std::ops::Add;
 use std::path::{Path, PathBuf};
 
 use crate::cmdline::Cmdline;
@@ -20,7 +18,7 @@ impl<SRC: AsRef<Path>, DEST: AsRef<Path>> CopyQueueFolder<SRC, DEST> {
     pub(crate) fn backup_all_files(&self, size_done: &f64, total_size: &f64, last_percentage: &usize, cmd: &mut Cmdline) -> Result<(f64, usize), std::io::Error> {
         let mut size_done = size_done.clone();
         let mut last_percentage = last_percentage.clone();
-        cmd.write_green(format!("Backing up {}", self.readable_src_path()).as_str());
+        let task = format!("Backing up {}", &self.readable_src_path());
         let src = self.src_path.as_ref();
         let dest = self.dest_path.as_ref();
         if src.is_dir() {
@@ -34,7 +32,7 @@ impl<SRC: AsRef<Path>, DEST: AsRef<Path>> CopyQueueFolder<SRC, DEST> {
                     let dest = dest.join(file_name);
                     std::fs::copy(&entry, &dest)?;
                     size_done += entry.metadata()?.len() as f64;
-                    last_percentage = cmd.write_percentage(&size_done, total_size, &last_percentage);
+                    last_percentage = cmd.write_percentage(&size_done, total_size, &last_percentage, task.as_str());
                 }
             }
         } else {
@@ -44,10 +42,8 @@ impl<SRC: AsRef<Path>, DEST: AsRef<Path>> CopyQueueFolder<SRC, DEST> {
             }
             std::fs::copy(&src, &dest)?;
             size_done += src.metadata()?.len() as f64;
-            last_percentage = cmd.write_percentage(&size_done, total_size, &last_percentage);
+            last_percentage = cmd.write_percentage(&size_done, total_size, &last_percentage, task.as_str());
         }
-
-
         Ok((size_done, last_percentage))
     }
 }
@@ -109,54 +105,3 @@ pub(crate) fn collect_copy_folders(requested_copy_folders: &Vec<BackupRelPath>, 
 
     Ok(out_folders)
 }
-
-
-pub fn copy_folder<U: AsRef<Path>, V: AsRef<Path>>(from: U, to: V, include_subfolders: bool) -> Result<(), std::io::Error> {
-    let mut stack = Vec::new();
-    stack.push(PathBuf::from(from.as_ref()));
-
-    let output_root = PathBuf::from(to.as_ref());
-    let input_root = PathBuf::from(from.as_ref()).components().count();
-
-    while let Some(working_path) = stack.pop() {
-        println!("process: {:?}", &working_path);
-
-        // Generate a relative path
-        let src: PathBuf = working_path.components().skip(input_root).collect();
-
-        // Create a destination if missing
-        let dest = if src.components().count() == 0 {
-            output_root.clone()
-        } else {
-            output_root.join(&src)
-        };
-        if std::fs::metadata(&dest).is_err() {
-            println!(" mkdir: {:?}", dest);
-            std::fs::create_dir_all(&dest)?;
-        }
-
-        for entry in std::fs::read_dir(working_path)? {
-            let entry = entry?;
-            let path = entry.path();
-            if path.is_dir() {
-                if include_subfolders {
-                    stack.push(path);
-                }
-            } else {
-                match path.file_name() {
-                    Some(filename) => {
-                        let dest_path = dest.join(filename);
-                        println!("  copy: {:?} -> {:?}", &path, &dest_path);
-                        std::fs::copy(&path, &dest_path)?;
-                    }
-                    None => {
-                        println!("failed: {:?}", path);
-                    }
-                }
-            }
-        }
-    }
-
-    Ok(())
-}
-

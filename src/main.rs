@@ -1,8 +1,4 @@
-use std::io::Error;
-
 use crate::cmdline::{Cmdline, new_cmdline};
-use crate::console::Console;
-use crate::local_pc::LocalPc;
 
 mod config;
 mod cmdline;
@@ -10,30 +6,31 @@ mod local_pc;
 mod console;
 mod copy;
 
+
 fn main() {
     let mut cmd = new_cmdline();
     cmd.starting_menu();
-    let config = config::must_load_config(&mut cmd);
+}
+
+fn choose_console_to_backup(cmd: &mut Cmdline) {
+    let config = config::must_load_config(cmd);
 
     let mut valid_console_map = Vec::new();
-
 
     for console in config.consoles.into_iter() {
         if console.validate() {
             valid_console_map.push(console);
         }
     }
-    let pc_valid = config.local_pc.is_some() && config.local_pc.as_ref().unwrap().validate(&mut cmd);
+    let pc_valid = config.local_pc.is_some() && config.local_pc.as_ref().unwrap().validate(cmd);
 
-    let local_pc = if pc_valid {
+    let valid_local_pc = if pc_valid {
         config.local_pc
     } else {
         None
     };
-    choose_console_to_backup(valid_console_map, local_pc, &mut cmd);
-}
 
-fn choose_console_to_backup(valid_console_map: Vec<Console>, valid_local_pc: Option<LocalPc>, cmd: &mut Cmdline) {
+
     cmd.write_green("\nChoose which system you want to backup:");
     cmd.write_green("0) all listed systems");
     for (index, console) in valid_console_map.iter().enumerate() {
@@ -57,16 +54,16 @@ fn choose_console_to_backup(valid_console_map: Vec<Console>, valid_local_pc: Opt
             Ok(_) => {}
             Err(e) => { cmd.write_red(format!("Could not backup pc system:\n{}", e).as_str()); }
         };
-        main();
+        cmd.starting_menu();
     } else if input == abort_index {
         std::process::exit(0);
     } else if input == home_index {
-        main();
+        cmd.starting_menu();
     } else if input == 0 {
         //Backup all systems
         for console in valid_console_map.into_iter() {
             if !console.backup() {
-                main();
+                cmd.starting_menu();
                 return;
             }
         }
@@ -74,12 +71,12 @@ fn choose_console_to_backup(valid_console_map: Vec<Console>, valid_local_pc: Opt
             match valid_local_pc.unwrap().backup(cmd) {
                 Ok(_) => {}
                 Err(_) => {
-                    main();
+                    cmd.starting_menu();
                     return;
                 }
             }
         }
-        main();
+        cmd.starting_menu();
     } else {
         let console = valid_console_map.get(input - 1);
         if console.is_some() {
@@ -91,10 +88,10 @@ fn choose_console_to_backup(valid_console_map: Vec<Console>, valid_local_pc: Opt
             } else {
                 cmd.write_green(format!("Console {} backuped to {}", console.name, console.dest).as_str())
             }
-            main();
+            cmd.starting_menu();
         } else {
             cmd.write_red("Invalid input!");
-            choose_console_to_backup(valid_console_map, valid_local_pc, cmd);
+            choose_console_to_backup(cmd);
         }
     }
 }

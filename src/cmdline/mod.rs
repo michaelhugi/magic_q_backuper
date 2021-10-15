@@ -1,45 +1,35 @@
 use std::{
     io::{stdin, stdout, Write},
-    thread::sleep,
-    time::Duration,
 };
+use std::io::{Stdin, Stdout};
 
+use crossterm::{ExecutableCommand, style::{Color, Print, SetForegroundColor}};
 
-use crossterm::{
-    execute,
-    style::{Color, Print, ResetColor, SetBackgroundColor, SetForegroundColor},
-    ExecutableCommand, Result,
-    event,
-};
-
-use termcolor::{Color, ColorChoice, ColorSpec, StandardStream, WriteColor};
-
-use crate::config;
+use crate::{choose_console_to_backup, config};
 
 pub(crate) const SEPARATOR_LINE: &str = "---------------------------------------------------------------------";
 
 pub(crate) struct Cmdline {
-    stdout: StandardStream,
+    stdout: Stdout,
+    stdin: Stdin,
 }
 
 pub(crate) fn new_cmdline() -> Cmdline {
+    let stdout = stdout();
+    let stdin = stdin();
     Cmdline {
-        stdout: StandardStream::stdout(ColorChoice::Always)
+        stdout,
+        stdin,
     }
 }
 
 impl Cmdline {
     pub(crate) fn write_green(&mut self, text: &str) {
-        if self.stdout.set_color(ColorSpec::new().set_fg(Some(Color::Green))).is_err() {
-            println!("{}", text);
-            return;
-        }
-        if writeln!(&mut self.stdout, "{}", text).is_err() {
-            println!("{}", text)
-        }
+        let _ = self.stdout.execute(SetForegroundColor(Color::Green));
+        let _ = self.stdout.execute(Print(format!("{}\n", text)));
     }
 
-    pub(crate) fn write_percentage(&mut self, done: &f64, total: &f64, last_percentage: &usize) -> usize {
+    pub(crate) fn write_percentage(&mut self, done: &f64, total: &f64, last_percentage: &usize, task: &str) -> usize {
         let total = if total == &0f64 {
             &1f64
         } else {
@@ -49,41 +39,22 @@ impl Cmdline {
         if last_percentage == &percentage {
             return percentage;
         }
+        let _ = self.stdout.execute(SetForegroundColor(Color::Green));
+        print!("\rProcessing {}%... {}", percentage, task);
+        let _ = self.stdout.flush().unwrap();
 
-        if self.stdout.set_color(ColorSpec::new().set_fg(Some(Color::Green))).is_err() {
-         }
-        self.stdout.flush();
-        self.stdout.write("holla".as_bytes());
-
-/*        if print!(&mut self.stdout, "{}%...", percentage).is_err() {
-            println!("{}%...", percentage);
-        }else{
-            self.stdout.flush().unwrap();
-        }
-*/
-        percentage
+        return percentage;
     }
 
     pub(crate) fn write_yellow(&mut self, text: &str) {
-        if self.stdout.set_color(ColorSpec::new().set_fg(Some(Color::Yellow))).is_err() {
-            println!("{}", text);
-            return;
-        }
-        if writeln!(&mut self.stdout, "{}", text).is_err() {
-            println!("{}", text)
-        }
+        let _ = self.stdout.execute(SetForegroundColor(Color::Yellow));
+        let _ = self.stdout.execute(Print(text));
     }
 
     pub(crate) fn write_red(&mut self, text: &str) {
-        if self.stdout.set_color(ColorSpec::new().set_fg(Some(Color::Red))).is_err() {
-            println!("{}", text);
-            return;
-        }
-        if writeln!(&mut self.stdout, "{}", text).is_err() {
-            println!("{}", text)
-        }
+        let _ = self.stdout.execute(SetForegroundColor(Color::Red));
+        let _ = self.stdout.execute(Print(text));
     }
-
 
     pub(crate) fn end_program(&mut self, success: bool) -> ! {
         if success {
@@ -92,7 +63,7 @@ impl Cmdline {
             self.write_yellow("Press any key to exit program");
         }
         let mut input_string = String::new();
-        stdin().read_line(&mut input_string).ok().expect("Unexpected program error");
+        self.stdin.read_line(&mut input_string).ok().expect("Unexpected program error");
         if success {
             std::process::exit(-1)
         }
@@ -108,7 +79,7 @@ impl Cmdline {
 
         match self.get_number_input() {
             1 => self.show_help(),
-            2 => {}
+            2 => choose_console_to_backup(self),
             3 => std::process::exit(0),
             _ => {
                 self.write_red("Invalid input");
@@ -118,9 +89,10 @@ impl Cmdline {
     }
 
     pub(crate) fn get_number_input(&mut self) -> usize {
-        self.write_green("Waiting for user input...");
+        let _ = self.stdout.execute(SetForegroundColor(Color::Green));
+        let _ = self.stdout.execute(Print("Waiting for user input..."));
         let mut input_string = String::new();
-        stdin().read_line(&mut input_string).ok().expect("Unexpected program error");
+        self.stdin.read_line(&mut input_string).ok().expect("Unexpected program error");
         self.write_green("");
         input_string.trim().to_string().parse().unwrap_or(usize::MAX)
     }

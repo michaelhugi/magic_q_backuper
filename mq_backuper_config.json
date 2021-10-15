@@ -49,7 +49,7 @@
     "backup_rel_paths": [
       {
         "rel_path": "show",
-        "include_subfolders": false
+        "include_subfolders": true
       },
       {
         "rel_path": "show\\icons\\icon0a00000b.mc2",

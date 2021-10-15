@@ -2,7 +2,6 @@ use std::path::Path;
 
 use serde::*;
 
-use crate::cmdline;
 use crate::cmdline::Cmdline;
 use crate::console::Console;
 use crate::local_pc::LocalPc;
