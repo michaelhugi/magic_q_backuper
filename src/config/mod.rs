@@ -3,6 +3,7 @@ use std::path::Path;
 use serde::*;
 
 use crate::cmdline;
+use crate::cmdline::Cmdline;
 use crate::console::Console;
 use crate::local_pc::LocalPc;
 
@@ -13,9 +14,9 @@ pub(crate) struct Config {
 }
 
 
-#[derive(Debug, Deserialize)]
-pub(crate) struct BackupFolder {
-    pub(crate) folder: String,
+#[derive(Debug, Deserialize, Clone)]
+pub(crate) struct BackupRelPath {
+    pub(crate) rel_path: String,
     pub(crate) include_subfolders: bool,
 }
 
@@ -76,18 +77,18 @@ pub(crate) const EXAMPLE_CONFIG_FILE: &str = r#"{
   }
 }"#;
 
-pub(crate) fn must_load_config() -> Config {
+pub(crate) fn must_load_config(cmd: &mut Cmdline) -> Config {
     let path = Path::new("mq_backuper_config.json");
     if !path.exists() {
-        cmdline::write_red("file my_backuper_config.json is missing. Please add file before using the application");
-        cmdline::end_program(false)
+        cmd.write_red("file my_backuper_config.json is missing. Please add file before using the application");
+        cmd.end_program(false)
     }
     let config_file = std::fs::read_to_string(path).unwrap_or_else(|_e| {
-        cmdline::write_red("Could not read file mq_backuper_config.json");
-        cmdline::end_program(false)
+        cmd.write_red("Could not read file mq_backuper_config.json");
+        cmd.end_program(false)
     });
     serde_json::from_str(&config_file).unwrap_or_else(|e1| {
-        cmdline::write_red(format!("Could not read file mq_backuper_config.json: {}\nExampleConfigFile:\n{}", e1, EXAMPLE_CONFIG_FILE).as_str());
-        cmdline::end_program(false)
+        cmd.write_red(format!("Could not read file mq_backuper_config.json: {}\nExampleConfigFile:\n{}", e1, EXAMPLE_CONFIG_FILE).as_str());
+        cmd.end_program(false)
     })
 }

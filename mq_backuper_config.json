@@ -5,25 +5,25 @@
       "ip": "192.168.0.51",
       "username": "magicQ",
       "password": "magicQ",
-      "backup_folders": [
+      "backup_rel_paths": [
         {
-          "folder": "show\\audio",
+          "rel_path": "show\\audio",
           "include_subfolders": false
         },
         {
-          "folder": "show\\bitmaps",
+          "rel_path": "show\\bitmaps",
           "include_subfolders": false
         },
         {
-          "folder": "show\\fx",
+          "rel_path": "show\\fx",
           "include_subfolders": false
         },
         {
-          "folder": "show\\log",
+          "rel_path": "show\\log",
           "include_subfolders": false
         },
         {
-          "folder": "show",
+          "rel_path": "show",
           "include_subfolders": false
         }
       ],
@@ -34,9 +34,9 @@
       "ip": "192.168.0.52",
       "username": "magicQ",
       "password": "magicQ",
-      "backup_folders": [
+      "backup_rel_paths": [
         {
-          "folder": "show",
+          "rel_path": "show",
           "include_subfolders": true
         }
       ],
@@ -46,10 +46,14 @@
   "local_pc": {
     "src": "C:\\Users\\michael.hugi\\Documents\\MagicQ",
     "dest": "C:\\TestbackupMq",
-    "backup_folders": [
+    "backup_rel_paths": [
       {
-        "folder": "show",
+        "rel_path": "show",
         "include_subfolders": false
+      },
+      {
+        "rel_path": "show\\icons\\icon0a00000b.mc2",
+        "include_subfolders": true
       }
     ]
   }

@@ -1,17 +1,20 @@
 use std::borrow::Cow;
+use std::fmt::Error;
 use std::fs::{create_dir, remove_dir};
+use std::io::ErrorKind;
 use std::path::{Path, PathBuf};
 
 use serde::*;
 
-use crate::cmdline::{get_number_input, write_green, write_red};
-use crate::config::BackupFolder;
+use crate::cmdline::{Cmdline, SEPARATOR_LINE};
+use crate::config::BackupRelPath;
+use crate::copy::collect_copy_folders;
 
 #[derive(Debug, Deserialize)]
 pub(crate) struct LocalPc {
     src: String,
     dest: String,
-    pub(crate) backup_folders: Vec<BackupFolder>,
+    pub(crate) backup_rel_paths: Vec<BackupRelPath>,
 }
 
 fn str(path: &PathBuf) -> &str {
@@ -20,80 +23,110 @@ fn str(path: &PathBuf) -> &str {
 
 
 impl LocalPc {
-    pub(crate) fn validate(&self) -> bool {
+    pub(crate) fn validate(&self, cmd: &mut Cmdline) -> bool {
         let main_path = Path::new(&self.src);
         if !main_path.exists() {
-            write_red(format!("{} for pc system does not exist", self.src).as_str());
+            cmd.write_red(format!("{} for pc system does not exist", self.src).as_str());
             return false;
         }
-        if self.backup_folders.len() == 0 {
-            write_red("No backup folders specified for local pc system");
+        if self.backup_rel_paths.len() == 0 {
+            cmd.write_red("No backup folders specified for local pc system");
             return false;
         }
-        for folder in self.backup_folders.iter() {
-            let sub_path = main_path.join(Path::new(&folder.folder));
+        for folder in self.backup_rel_paths.iter() {
+            let sub_path = main_path.join(Path::new(&folder.rel_path));
             if !sub_path.exists() {
-                write_red(format!("{} for pc system does not exist", str(&sub_path)).as_str())
+                cmd.write_red(format!("{} for pc system does not exist", str(&sub_path)).as_str())
             }
         }
 
         true
     }
     //Returns ture if program can continue
-    pub(crate) fn backup(&self) -> bool {
-        write_green("Backing up pc system...");
-        let main_path = Path::new(&self.src);
-        if !main_path.exists() {
-            write_red(format!("{} does not exist", &self.src).as_str());
-            return self.show_error_message();
-        }
-        let dest = Path::new(&self.dest);
-        if !dest.exists() {
-            if create_dir(dest).is_err() {
-                write_red(format!("Could not create folder {}", self.dest).as_ref());
-                return false;
-            }
-        }
-        let temp = dest.join("temp");
+    pub(crate) fn backup(self, cmd: &mut Cmdline) -> Result<(), std::io::Error> {
+        cmd.write_green(SEPARATOR_LINE);
+        cmd.write_green("Backing up pc system");
+        cmd.write_green(SEPARATOR_LINE);
+
+        let temp = Path::new(&self.dest).join("temp");
         if temp.exists() {
-            if std::fs::remove_dir_all(&temp).is_err() {
-                write_red(format!("Could not remove temporary folder {}", str(&temp)).as_ref());
-                return false;
-            }
+            std::fs::remove_dir_all(&temp)?;
         }
-        if create_dir(&temp).is_err() {
-            write_red(format!("Could not create temporary folder {}", str(&temp)).as_ref());
-            return false;
-        }
-        let temp = temp.as_path();
-        for folder in self.backup_folders.iter() {
-            let sub_path = main_path.join(Path::new(&folder.folder));
-            if !sub_path.exists() {
-                write_red(format!("{} for pc system does not exist", str(&sub_path)).as_str())
-            }
-            let src = main_path.join(&folder.folder);
-            let dest = temp.join(&folder.folder);
-            if copy_folder(src, dest, folder.include_subfolders).is_err() {
-                return false;
-            }
-        }
-        write_green("Pc system backuped");
-        true
-    }
+        create_dir(&temp)?;
 
-    fn show_error_message(&self) -> bool {
-        write_red("Could not backup local pc system");
-        write_red("1) Abort");
-        write_red("2) Continue");
+        cmd.write_green("Calculating folders. Please wait...");
 
-        match get_number_input() {
-            1 => false,
-            2 => true,
-            _ => {
-                write_red("Invalid input");
-                self.show_error_message()
-            }
+        let mut recursive_folders = collect_copy_folders(&self.backup_rel_paths, Path::new(&self.src).to_path_buf(), Path::new(&temp).to_path_buf())?;
+
+        let mut total_size = 0f64;
+        let mut size_done = 0f64;
+        let mut last_percentage = 0usize;
+
+        for folder in recursive_folders.iter() {
+            total_size += folder.size_without_sub_folders;
         }
+        if total_size == 0f64 {
+            total_size = 1f64;
+        }
+
+        for folder in recursive_folders.iter() {
+            let out = folder.backup_all_files(&size_done, &total_size, &last_percentage, cmd)?;
+            size_done = out.0;
+            last_percentage = out.1;
+        }
+        Ok(())
+
+        /*  let main_path = Path::new(&self.src);
+          if !main_path.exists() {
+              write_red(format!("{} does not exist", &self.src).as_str());
+              return self.show_error_message();
+          }
+          let dest = Path::new(&self.dest);
+          if !dest.exists() {
+              if create_dir(dest).is_err() {
+                  write_red(format!("Could not create folder {}", self.dest).as_ref());
+                  return false;
+              }
+          }
+          let temp = dest.join("temp");
+          if temp.exists() {
+              if std::fs::remove_dir_all(&temp).is_err() {
+                  write_red(format!("Could not remove temporary folder {}", str(&temp)).as_ref());
+                  return false;
+              }
+          }
+          if create_dir(&temp).is_err() {
+              write_red(format!("Could not create temporary folder {}", str(&temp)).as_ref());
+              return false;
+          }
+          let temp = temp.as_path();
+          for folder in self.backup_folders.iter() {
+              let sub_path = main_path.join(Path::new(&folder.folder));
+              if !sub_path.exists() {
+                  write_red(format!("{} for pc system does not exist", str(&sub_path)).as_str())
+              }
+              let src = main_path.join(&folder.folder);
+              let dest = temp.join(&folder.folder);
+              if copy_folder(src, dest, folder.include_subfolders).is_err() {
+                  return false;
+              }
+          }
+          write_green("Pc system backuped");
+          true
+      }
+
+      fn show_error_message(&self) -> bool {
+          write_red("Could not backup local pc system");
+          write_red("1) Abort");
+          write_red("2) Continue");
+
+          match get_number_input() {
+              1 => false,
+              2 => true,
+              _ => {
+                  write_red("Invalid input");
+                  self.show_error_message()
+              } }*/
     }
 }
 

@@ -1,4 +1,6 @@
-use crate::cmdline::{get_number_input, write_green, write_red};
+use std::io::Error;
+
+use crate::cmdline::{Cmdline, new_cmdline};
 use crate::console::Console;
 use crate::local_pc::LocalPc;
 
@@ -6,10 +8,12 @@ mod config;
 mod cmdline;
 mod local_pc;
 mod console;
+mod copy;
 
 fn main() {
-    cmdline::starting_menu();
-    let config = config::must_load_config();
+    let mut cmd = new_cmdline();
+    cmd.starting_menu();
+    let config = config::must_load_config(&mut cmd);
 
     let mut valid_console_map = Vec::new();
 
@@ -19,40 +23,45 @@ fn main() {
             valid_console_map.push(console);
         }
     }
-    let pc_valid = config.local_pc.is_some() && config.local_pc.as_ref().unwrap().validate();
+    let pc_valid = config.local_pc.is_some() && config.local_pc.as_ref().unwrap().validate(&mut cmd);
 
     let local_pc = if pc_valid {
         config.local_pc
     } else {
         None
     };
-    choose_console_to_backup(valid_console_map, local_pc);
+    choose_console_to_backup(valid_console_map, local_pc, &mut cmd);
 }
 
-fn choose_console_to_backup(valid_console_map: Vec<Console>, valid_local_pc: Option<LocalPc>) {
-    write_green("\n\nChoose which system you want to backup:");
-    write_green("0) all listed systems");
+fn choose_console_to_backup(valid_console_map: Vec<Console>, valid_local_pc: Option<LocalPc>, cmd: &mut Cmdline) {
+    cmd.write_green("\nChoose which system you want to backup:");
+    cmd.write_green("0) all listed systems");
     for (index, console) in valid_console_map.iter().enumerate() {
-        write_green(format!("{}) {}", index + 1, console.name).as_str())
+        cmd.write_green(format!("{}) {}", index + 1, console.name).as_str())
     }
     let mut pc_index = usize::MAX - 1;
     let mut abort_index = valid_console_map.len() + 1;
     if valid_local_pc.is_some() {
         pc_index = abort_index;
         abort_index += 1;
-        write_green(format!("{}) Local Pc", pc_index).as_str())
+        cmd.write_green(format!("{}) Local Pc", pc_index).as_str())
     }
-    write_green(format!("{}) Exit program", abort_index).as_str());
-    write_green("");
+    cmd.write_green(format!("{}) Exit program", abort_index).as_str());
+    let home_index = abort_index + 1;
+    cmd.write_green(format!("{}) Home", home_index).as_str());
 
-
-    let input = cmdline::get_number_input();
+    let input = cmd.get_number_input();
 
     if input == pc_index {
-        valid_local_pc.unwrap().backup();
+        match valid_local_pc.unwrap().backup(cmd) {
+            Ok(_) => {}
+            Err(e) => { cmd.write_red(format!("Could not backup pc system:\n{}", e).as_str()); }
+        };
         main();
     } else if input == abort_index {
         std::process::exit(0);
+    } else if input == home_index {
+        main();
     } else if input == 0 {
         //Backup all systems
         for console in valid_console_map.into_iter() {
@@ -62,9 +71,12 @@ fn choose_console_to_backup(valid_console_map: Vec<Console>, valid_local_pc: Opt
             }
         }
         if valid_local_pc.is_some() {
-            if !valid_local_pc.unwrap().backup() {
-                main();
-                return;
+            match valid_local_pc.unwrap().backup(cmd) {
+                Ok(_) => {}
+                Err(_) => {
+                    main();
+                    return;
+                }
             }
         }
         main();
@@ -73,16 +85,16 @@ fn choose_console_to_backup(valid_console_map: Vec<Console>, valid_local_pc: Opt
         if console.is_some() {
             let console = console.unwrap();
             if !console.backup() {
-                write_red(format!("Could not backup {}", console.name).as_str());
-                write_red("Press any key to continue");
-                get_number_input();
+                cmd.write_red(format!("Could not backup {}", console.name).as_str());
+                cmd.write_red("Press any key to continue");
+                cmd.get_number_input();
             } else {
-                write_green(format!("Console {} backuped to {}", console.name, console.dest).as_str())
+                cmd.write_green(format!("Console {} backuped to {}", console.name, console.dest).as_str())
             }
             main();
         } else {
-            write_red("Invalid input!");
-            choose_console_to_backup(valid_console_map, valid_local_pc);
+            cmd.write_red("Invalid input!");
+            choose_console_to_backup(valid_console_map, valid_local_pc, cmd);
         }
     }
 }
