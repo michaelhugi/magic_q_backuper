@@ -175,7 +175,7 @@ impl TUI {
     pub fn update_current_task<S: AsRef<str>>(&mut self, task: S) {
         let _ = self.stdout.execute(SetAttribute(Attribute::Reset));
         let _ = self.stdout.flush();
-        print!("\r{}                                                                                                                                      ", task.as_ref());
+        print!("\r{}", task.as_ref());
         let _ = self.stdout.flush();
     }
 
