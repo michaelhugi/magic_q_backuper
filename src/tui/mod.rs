@@ -197,11 +197,11 @@ impl TUI {
                 MenuItem::Home => {}
                 //Added implicitly later
                 MenuItem::ExitProgram() => {}
-                menu_item => { let _ = self.stdout.write(format!("{}) {}\n", index, menu_item.text()).as_bytes()); }
+                menu_item => { let _ = self.stdout.write(format!("{}) {}\n", index + 1, menu_item.text()).as_bytes()); }
             }
         }
         //Adding exit and main menu implicitly
-        let main_menu_index = menu_items.len();
+        let main_menu_index = menu_items.len() + 1;
         let mut exit_program_index = main_menu_index + 1;
         match current_item {
             MenuItem::Home => exit_program_index = main_menu_index,
@@ -217,8 +217,7 @@ impl TUI {
         let _ = self.stdout.execute(SetAttribute(Attribute::Reset));
         let mut input = String::new();
         self.stdin.read_line(&mut input).ok().expect("Unexpected program error");
-        let input = input.trim().to_string().parse().unwrap_or(usize::MAX);
-
+        let mut input = input.trim().to_string().parse().unwrap_or(usize::MAX);
         if input == exit_program_index {
             std::process::exit(0);
         }
@@ -230,7 +229,9 @@ impl TUI {
                 }
             }
         }
-
+        if input > 0 {
+            input -= 1;
+        }
         match menu_items.get(input) {
             None => self.show_and_confirm_error(vec!["Invalid input"], current_item, true),
             Some(_) => menu_items.remove(input)
