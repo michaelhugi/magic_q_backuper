@@ -4,14 +4,12 @@ use std::path::Path;
 
 use serde::*;
 
-use crate::console::Console;
 use crate::error::Error;
 use crate::local_installation::LocalInstallation;
 
 #[derive(Debug, Deserialize)]
 pub struct Systems {
-    pub consoles: Option<Vec<Console>>,
-    pub local_installations: Option<Vec<LocalInstallation>>,
+    pub systems: Option<Vec<LocalInstallation>>,
 }
 
 
@@ -29,62 +27,33 @@ pub fn get_example_config_file() -> String {
 }
 
 const EXAMPLE_CONFIG_FILE_WITHOUT_UN: &str = r#"{
-  "consoles": [
+  "systems": [
     {
-      "name": "My Mq500M",
-      "ip": "192.168.0.51",
-      "username": "magicQ",
-      "password": "magicQ",
+      "name": "My MQ500m",
+      "src": "M:\\magicq",
+      "dest": "C:\\PathToYourGoogleDriveFolder",
       "backup_rel_paths": [
         {
-          "rel_path": "show\\audio",
-          "include_subfolders": false
-        },
-        {
-          "rel_path": "show\\bitmaps",
-          "include_subfolders": false
-        },
-        {
-          "rel_path": "show\\fx",
-          "include_subfolders": false
-        },
-        {
-          "rel_path": "show\\log",
-          "include_subfolders": false
-        },
-        {
-          "excluded_files":[
+          "excluded_files": [
             "heads.all",
-            "*.all"
+            "*.sbk"
           ],
           "rel_path": "show",
           "include_subfolders": false
-        }
-      ],
-      "dest": "C:\\PathToYourGoogleDriveFolder"
-    },
-    {
-      "name": "My Mq80",
-      "ip": "192.168.0.52",
-      "username": "magicQ",
-      "password": "magicQ",
-      "backup_rel_paths": [
+        },
         {
-          "rel_path": "show",
+          "rel_path": "show\\icons\\icon0a00000b.mc2",
           "include_subfolders": true
         }
-      ],
-      "dest": "C:\\PathToYourGoogleDriveFolder"
-    }
-  ],
-  "local_installations": [
+      ]
+    },
     {
       "name": "MagicQ on Pc",
       "src": "C:\\Users\\{your_username}\\Documents\\MagicQ",
       "dest": "C:\\PathToYourGoogleDriveFolder",
       "backup_rel_paths": [
         {
-          "excluded_files":[
+          "excluded_files": [
             "heads.all",
             "*.sbk"
           ],
@@ -125,14 +94,13 @@ fn load_systems() -> Result<Systems, Error> {
 
 //Holds all valid specified consoles local installations and warnings about not valid items
 pub struct ValidConsolesAndLocalInstallations {
-    pub consoles: Vec<Console>,
-    pub local_installations: Vec<LocalInstallation>,
+    pub systems: Vec<LocalInstallation>,
     pub warnings: Vec<Error>,
 }
 
 impl ValidConsolesAndLocalInstallations {
     pub fn is_empty(&self) -> bool {
-        self.consoles.is_empty() && self.local_installations.is_empty()
+        self.systems.is_empty()
     }
 }
 
@@ -141,18 +109,9 @@ pub fn load_validated_consoles_and_local_installations() -> Result<ValidConsoles
     match load_systems() {
         Ok(systems) => {
             let mut warnings = Vec::new();
-            let mut consoles = Vec::new();
-            if systems.consoles.is_some() {
-                for console in systems.consoles.unwrap().into_iter() {
-                    match console.validate() {
-                        Ok(_) => consoles.push(console),
-                        Err(e) => warnings.push(e),
-                    }
-                }
-            }
             let mut local_installations = Vec::new();
-            if systems.local_installations.is_some() {
-                for local_installation in systems.local_installations.unwrap().into_iter() {
+            if systems.systems.is_some() {
+                for local_installation in systems.systems.unwrap().into_iter() {
                     match local_installation.validate() {
                         Ok(_) => local_installations.push(local_installation),
                         Err(e) => warnings.push(e)
@@ -161,8 +120,7 @@ pub fn load_validated_consoles_and_local_installations() -> Result<ValidConsoles
             }
 
             Ok(ValidConsolesAndLocalInstallations {
-                consoles,
-                local_installations,
+                systems: local_installations,
                 warnings,
             })
         }

@@ -1,6 +1,5 @@
 use crate::tui::{MenuItem, TUI};
 
-mod console;
 mod tui;
 mod systems;
 mod local_installation;
@@ -20,8 +19,30 @@ fn main() {
             MenuItem::ShowConfigExample => tui.show_config_example(),
             MenuItem::CreateConfigExample => tui.create_config_example(),
             MenuItem::ChooseBackupSystem => tui.show_choose_system_to_backup(),
-            MenuItem::BackupAllSystems(_, _) => unimplemented!(),
-            MenuItem::BackupConsole(_) => unimplemented!(),
+            MenuItem::BackupAllSystems(local_installations) => {
+                let mut successes = Vec::new();
+                let mut errors = Vec::new();
+                for local_installation in local_installations.into_iter() {
+                    match local_installation.backup(&mut tui) {
+                        Ok(success_message) => {
+                            successes.push(success_message);
+                        }
+                        Err(err) => {
+                            for e in err.texts().into_iter() {
+                                errors.push(e);
+                            }
+                        }
+                    }
+                }
+                if successes.is_empty() {
+                    tui.show_and_confirm_error(errors, MenuItem::ChooseBackupSystem, true)
+                } else if errors.is_empty() {
+                    tui.show_and_confirm_success(successes, MenuItem::ChooseBackupSystem)
+                } else {
+                    let _ = tui.show_and_confirm_error(errors, MenuItem::ChooseBackupSystem, true);
+                    tui.show_and_confirm_success(successes, MenuItem::ChooseBackupSystem)
+                }
+            }
             MenuItem::BackupLocalInstallation(local_installation) => {
                 match local_installation.backup(&mut tui) {
                     Ok(success_message) => {

@@ -8,7 +8,6 @@ use crossterm::cursor::MoveTo;
 use crossterm::style::{Attribute, ResetColor, SetAttribute};
 use crossterm::terminal::{Clear, ClearType};
 
-use crate::console::Console;
 use crate::local_installation::LocalInstallation;
 use crate::systems::{CONFIG_FILE_NAME, create_config_json, get_example_config_file, load_validated_consoles_and_local_installations};
 
@@ -53,6 +52,9 @@ impl TUI {
         self.writeln("");
         self.writeln(format!("Note that you need to specify a {} file to the location where this program runs. In this file you specify all the systems that are on this computer or in the network of this computer", CONFIG_FILE_NAME));
         self.writeln("If you are unfamiliar with json file format consider downloading notepad++ to edit the file as it has code highlighting for json files");
+        self.writeln("");
+        self.writeln("To access any console you need to crate a virtual drive (with stored username and password) on your computer");
+
         self.show_menu(vec![MenuItem::ShowConfigExample, MenuItem::ShowConfigLocation, MenuItem::CreateConfigExample], MenuItem::Help)
     }
     //Shows the user where the config should be located and shows a menu for next actions
@@ -102,12 +104,9 @@ impl TUI {
                     self.show_and_confirm_warning(w);
                 }
 
-                let mut menu = vec![MenuItem::BackupAllSystems(valid_items.consoles.clone(), valid_items.local_installations.clone())];
+                let mut menu = vec![MenuItem::BackupAllSystems(valid_items.systems.clone())];
 
-                for console in valid_items.consoles.into_iter() {
-                    menu.push(MenuItem::BackupConsole(console));
-                }
-                for local_installation in valid_items.local_installations.into_iter() {
+                for local_installation in valid_items.systems.into_iter() {
                     menu.push(MenuItem::BackupLocalInstallation(local_installation));
                 }
                 self.show_menu(menu, MenuItem::ChooseBackupSystem)
@@ -299,8 +298,7 @@ pub enum MenuItem {
     ShowConfigExample,
     CreateConfigExample,
     ChooseBackupSystem,
-    BackupAllSystems(Vec<Console>, Vec<LocalInstallation>),
-    BackupConsole(Console),
+    BackupAllSystems(Vec<LocalInstallation>),
     BackupLocalInstallation(LocalInstallation),
     ExitProgram(),
 }
@@ -313,8 +311,7 @@ impl MenuItem {
             MenuItem::ShowConfigLocation => format!("Where should this {} be located?", CONFIG_FILE_NAME),
             MenuItem::CreateConfigExample => format!("Create {} with example data for me", CONFIG_FILE_NAME),
             MenuItem::ChooseBackupSystem => "Backup one ore more systems".to_string(),
-            MenuItem::BackupAllSystems(_, _) => "All systems".to_string(),
-            MenuItem::BackupConsole(console) => format!("Backup {}", console.name),
+            MenuItem::BackupAllSystems(_) => "All listed systems".to_string(),
             MenuItem::BackupLocalInstallation(local_installation) => format!("Backup {}", local_installation.name),
             MenuItem::ExitProgram() => "End program".to_string(),
             MenuItem::ShowConfigExample => format!("Show example of {}", CONFIG_FILE_NAME)
