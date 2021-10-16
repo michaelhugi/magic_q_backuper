@@ -25,7 +25,7 @@ pub struct TUI {
 //New Terminal UI
 pub fn new_tui() -> TUI {
     let stdout = stdout();
-    enable_raw_mode().unwrap();
+    // enable_raw_mode().unwrap();
     let stdin = stdin();
     TUI {
         stdout,
@@ -51,7 +51,7 @@ impl TUI {
         self.writeln("The destination location is most likely your local folder to google-drive or dropbox so your files get synced to the cloud automatically");
         self.writeln("");
         self.writeln(format!("Note that you need to specify a {} file to the location where this program runs. In this file you specify all the systems that are on this computer or in the network of this computer", CONFIG_FILE_NAME));
-        self.show_menu(vec![MenuItem::ShowConfigExample, MenuItem::ShowConfigLocation], MenuItem::Help)
+        self.show_menu(vec![MenuItem::ShowConfigExample, MenuItem::ShowConfigLocation, MenuItem::CreateConfigExample], MenuItem::Help)
     }
     //Shows the user where the config should be located and shows a menu for next actions
     pub fn show_config_location(&mut self) -> MenuItem {
@@ -70,7 +70,7 @@ impl TUI {
     pub fn show_config_example(&mut self) -> MenuItem {
         self.write_title(format!("Example of {}", CONFIG_FILE_NAME));
         self.write_success(EXAMPLE_CONFIG_FILE);
-        self.show_menu(vec![MenuItem::Help], MenuItem::ShowConfigExample)
+        self.show_menu(vec![MenuItem::Help, MenuItem::CreateConfigExample], MenuItem::ShowConfigExample)
     }
 
     //Creates a config-file if not present and shows the result to the user, waiting for input and returning to home menu
@@ -102,9 +102,11 @@ impl TUI {
 
     //Clears the console and then writes a title with separator lines in a constant styling
     pub fn write_title<S: AsRef<str>>(&mut self, text: S) {
+        let _ = self.stdout.execute(SetAttribute(Attribute::Reset));
         let _ = self.stdout.execute(Clear(ClearType::Purge));
         let _ = self.stdout.execute(SetAttribute(Attribute::Bold));
         let _ = self.stdout.execute(SetForegroundColor(Color::Blue));
+        let _ = self.stdout.flush();
         let _ = self.stdout.write(EMPTY_LINE);
         let _ = self.stdout.write(SEPARATOR_LINE);
         let _ = self.stdout.write(SEPARATOR_LINE);
@@ -112,45 +114,59 @@ impl TUI {
         let _ = self.stdout.write(SEPARATOR_LINE);
         let _ = self.stdout.write(SEPARATOR_LINE);
         let _ = self.stdout.write(EMPTY_LINE);
-        let _ = self.stdout.execute(SetAttribute(Attribute::NoBold));
+        let _ = self.stdout.execute(SetAttribute(Attribute::Reset));
     }
 
     //Simply writes text without newline in standard style and color to the command outpout
     pub fn write<S: AsRef<str>>(&mut self, text: S) {
+        let _ = self.stdout.execute(SetAttribute(Attribute::Reset));
         let _ = self.stdout.execute(ResetColor);
+        let _ = self.stdout.flush();
         let _ = self.stdout.write(text.as_ref().as_bytes());
     }
 
     //Simply writes a line in standard style and color to the command outpout
     pub fn writeln<S: AsRef<str>>(&mut self, text: S) {
+        let _ = self.stdout.execute(SetAttribute(Attribute::Reset));
         let _ = self.stdout.execute(ResetColor);
+        let _ = self.stdout.flush();
         let _ = self.stdout.write(format!("{}\n", text.as_ref()).as_bytes());
     }
 
     //Writes a line in red to the command outpout
     pub fn write_errorln<S: AsRef<str>>(&mut self, text: S) {
+        let _ = self.stdout.execute(SetAttribute(Attribute::Reset));
         let _ = self.stdout.execute(SetForegroundColor(Color::Red));
+        let _ = self.stdout.flush();
         let _ = self.stdout.write(format!("ERROR: {}\n", text.as_ref()).as_bytes());
     }
     //Writes a line in red to the command outpout
     pub fn write_success<S: AsRef<str>>(&mut self, text: S) {
+        let _ = self.stdout.execute(SetAttribute(Attribute::Reset));
         let _ = self.stdout.execute(SetForegroundColor(Color::Green));
+        let _ = self.stdout.flush();
         let _ = self.stdout.write(text.as_ref().as_bytes());
     }
     //Writes a line in green to the command outpout
     pub fn write_successln<S: AsRef<str>>(&mut self, text: S) {
+        let _ = self.stdout.execute(SetAttribute(Attribute::Reset));
         let _ = self.stdout.execute(SetForegroundColor(Color::Green));
+        let _ = self.stdout.flush();
         let _ = self.stdout.write(format!("{}\n", text.as_ref()).as_bytes());
     }
     //Writes a line in yellow to the command outpout
     pub fn write_warnln<S: AsRef<str>>(&mut self, text: S) {
+        let _ = self.stdout.execute(SetAttribute(Attribute::Reset));
         let _ = self.stdout.execute(SetForegroundColor(Color::DarkYellow));
+        let _ = self.stdout.flush();
         let _ = self.stdout.write(format!("{}\n", text.as_ref()).as_bytes());
     }
 
     //Writes process to the cmd output and replaces it's content in the cmd-line so not for every refresh a new line is paintet
     //TODO: make it smarter!
     pub fn write_progress(&mut self, done: &f64, total: &f64, last_percentage: &usize, task: &str) -> usize {
+        let _ = self.stdout.execute(SetAttribute(Attribute::Reset));
+        let _ = self.stdout.flush();
         let total = if total == &0f64 {
             &1f64
         } else {
@@ -169,13 +185,18 @@ impl TUI {
 
     //Shows any generic menu. The current_item will be reused in case there is an invalid input
     fn show_menu(&mut self, mut menu_items: Vec<MenuItem>, current_item: MenuItem) -> MenuItem {
+        let _ = self.stdout.execute(SetAttribute(Attribute::Reset));
         let _ = self.stdout.execute(ResetColor);
+        let _ = self.stdout.flush();
         let _ = self.stdout.write("\n".as_bytes());
         let _ = self.stdout.execute(SetAttribute(Attribute::Underlined));
+        let _ = self.stdout.flush();
         let _ = self.stdout.write("Menu Options\n".as_bytes());
-        let _ = self.stdout.execute(SetAttribute(Attribute::NoUnderline));
+        let _ = self.stdout.execute(SetAttribute(Attribute::Reset));
+        let _ = self.stdout.flush();
         let _ = self.stdout.write("\n".as_bytes());
         let _ = self.stdout.execute(SetAttribute(Attribute::Italic));
+        let _ = self.stdout.flush();
         for (index, menu_item) in menu_items.iter().enumerate() {
             match menu_item {
                 //Added implicitly later
@@ -201,7 +222,7 @@ impl TUI {
         let _ = self.stdout.execute(ResetColor);
 
         let _ = self.stdout.write("Waiting for user input...".as_bytes());
-        let _ = self.stdout.execute(SetAttribute(Attribute::NoItalic));
+        let _ = self.stdout.execute(SetAttribute(Attribute::Reset));
         let mut input = String::new();
         self.stdin.read_line(&mut input).ok().expect("Unexpected program error");
         let input = input.trim().to_string().parse().unwrap_or(usize::MAX);
@@ -248,7 +269,7 @@ impl TUI {
         let _ = self.stdout.write(SEPARATOR_LINE);
         let _ = self.stdout.write(SEPARATOR_LINE);
         let _ = self.stdout.write(EMPTY_LINE);
-        let _ = self.stdout.execute(SetAttribute(Attribute::NoBold));
+        let _ = self.stdout.execute(SetAttribute(Attribute::Reset));
 
         for text in texts.iter() {
             let _ = self.write_errorln(text);
@@ -258,13 +279,12 @@ impl TUI {
 
     //Prints Press any key to continue and passes the menu_item provided back when the user enters any key
     fn wait_for_any_key(&mut self, menu_item: MenuItem) -> MenuItem {
+        let _ = self.stdout.execute(SetAttribute(Attribute::Reset));
         let _ = self.stdout.write(EMPTY_LINE);
-        self.write("Press any key to continue...");
-
-        match crossterm::event::read() {
-            Ok(_) => menu_item,
-            Err(_) => menu_item
-        }
+        self.writeln("Press enter to continue...");
+        let mut buf = String::new();
+        self.stdin.read_line(&mut buf);
+        menu_item
     }
 }
 
@@ -285,7 +305,7 @@ impl MenuItem {
     fn text(&self) -> String {
         match self {
             MenuItem::Home => "Home".to_string(),
-            MenuItem::Help => "Help".to_string(),
+            MenuItem::Help => "Help overview".to_string(),
             MenuItem::ShowConfigLocation => format!("Where should this {} be located?", CONFIG_FILE_NAME),
             MenuItem::CreateConfigExample => format!("Create {} with example data for me", CONFIG_FILE_NAME),
             MenuItem::ChooseBackupSystem => "Backup one ore more systems".to_string(),
