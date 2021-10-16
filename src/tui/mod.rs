@@ -178,6 +178,13 @@ impl TUI {
         let _ = self.stdout.flush();
         let _ = self.stdout.write(format!("{}\n", text.as_ref()).as_bytes());
     }
+    //Writes the current task withouth styling but in a way that the next line wil override it again.
+    pub fn update_current_task<S: AsRef<str>>(&mut self, task: S) {
+        let _ = self.stdout.execute(SetAttribute(Attribute::Reset));
+        let _ = self.stdout.flush();
+        print!("\r{}", task.as_ref());
+        let _ = self.stdout.flush();
+    }
 
     //Writes process to the cmd output and replaces it's content in the cmd-line so not for every refresh a new line is paintet
     //TODO: make it smarter!
@@ -229,12 +236,10 @@ impl TUI {
         match current_item {
             MenuItem::Home => exit_program_index = main_menu_index,
             _ => {
-                let _ = self.stdout.execute(SetForegroundColor(Color::Green));
                 let _ = self.stdout.write(format!("{}) {}\n", main_menu_index, MenuItem::Home.text()).as_bytes());
             }
         }
 
-        let _ = self.stdout.execute(SetForegroundColor(Color::Yellow));
         let _ = self.stdout.write(format!("{}) {}\n\n", exit_program_index, MenuItem::ExitProgram().text()).as_bytes());
         let _ = self.stdout.execute(ResetColor);
 

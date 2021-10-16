@@ -1,3 +1,5 @@
+use std::io::Error;
+
 use crate::tui::{MenuItem, new_tui};
 
 mod console;
@@ -6,6 +8,7 @@ mod tui;
 mod systems;
 mod local_installation;
 mod error;
+mod zip;
 
 
 fn main() {
@@ -21,9 +24,17 @@ fn main() {
             MenuItem::ChooseBackupSystem => tui.show_choose_system_to_backup(),
             MenuItem::BackupAllSystems(_, _) => unimplemented!(),
             MenuItem::BackupConsole(_) => unimplemented!(),
-            MenuItem::BackupLocalInstallation(_) => unimplemented!(),
+            MenuItem::BackupLocalInstallation(local_installation) => {
+                match local_installation.backup(&mut tui) {
+                    Ok(path) => {
+                        tui.show_and_confirm_success(vec![path], MenuItem::ChooseBackupSystem)
+                    }
+                    Err(err) => {
+                        tui.show_and_confirm_error(err.texts(), MenuItem::ChooseBackupSystem, true)
+                    }
+                }
+            }
             MenuItem::ExitProgram() => std::process::exit(0),
         }
     }
-    tui.show_main_menu();
 }

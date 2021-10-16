@@ -71,29 +71,31 @@ pub const EXAMPLE_CONFIG_FILE: &str = r#"{
   ],
   "local_installations": [
     {
-        "src": "C:\\Users\\michael.hugi\\Documents\\MagicQ",
-        "dest": "C:\\TestbackupMq",
-        "backup_rel_paths": [
+      "name": "MagicQ on Pc",
+      "src": "C:\\Users\\michael.hugi\\Documents\\MagicQ",
+      "dest": "C:\\TestbackupMq",
+      "backup_rel_paths": [
         {
-            "rel_path": "show",
-            "include_subfolders": true
+          "rel_path": "show",
+          "include_subfolders": false
         },
         {
-            "rel_path": "show\\icons\\icon0a00000b.mc2",
-            "include_subfolders": true
+          "rel_path": "show\\icons\\icon0a00000b.mc2",
+          "include_subfolders": true
         }
-        ]
+      ]
     },
     {
-        "src": "D:\\mhugi\\Documents\\Capture",
-        "dest": "C:\\TestbackupMq",
-        "backup_rel_paths": [
+      "name": "Capture",
+      "src": "D:\\mhugi\\Documents\\Capture",
+      "dest": "C:\\TestbackupMq",
+      "backup_rel_paths": [
         {
-            "rel_path": "",
-            "include_subfolders": true
+          "rel_path": "",
+          "include_subfolders": true
         }
-        ]
-    },
+      ]
+    }
   ]
 }"#;
 

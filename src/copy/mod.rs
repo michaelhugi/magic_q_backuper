@@ -1,6 +1,13 @@
-use std::fs::{create_dir, create_dir_all};
+use std::fs::{create_dir, create_dir_all, File};
+use std::io::{Read, Seek, Write};
 use std::path::{Path, PathBuf};
 
+use zip::result::ZipError;
+use zip::write::FileOptions;
+
+use walkdir::{DirEntry, WalkDir};
+
+use crate::error::Error;
 use crate::systems::BackupRelPath;
 use crate::tui::TUI;
 
@@ -68,7 +75,8 @@ pub fn new_copy_queue_folder<SRC: AsRef<Path>, DEST: AsRef<Path>>(src_path: SRC,
 }
 
 
-pub fn collect_copy_folders(requested_copy_folders: &Vec<BackupRelPath>, src_root: PathBuf, dest_root: PathBuf) -> Result<Vec<CopyQueueFolder<PathBuf, PathBuf>>, std::io::Error> {
+//Collects all supaths to copy
+pub fn collect_copy_folders(requested_copy_folders: &Vec<BackupRelPath>, src_root: PathBuf, dest_root: PathBuf) -> Result<Vec<CopyQueueFolder<PathBuf, PathBuf>>, Error> {
     let mut out_folders = Vec::new();
     let mut requested_copy_folders = requested_copy_folders.clone();
     let src_root_size = PathBuf::from(&src_root).components().count();
@@ -105,3 +113,4 @@ pub fn collect_copy_folders(requested_copy_folders: &Vec<BackupRelPath>, src_roo
 
     Ok(out_folders)
 }
+
