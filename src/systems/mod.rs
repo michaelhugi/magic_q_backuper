@@ -5,7 +5,7 @@ use std::path::Path;
 use serde::*;
 
 use crate::console::Console;
-use crate::error::{Error, new_error};
+use crate::error::{Error, new_error, new_error_j, new_error_s};
 use crate::local_installation::LocalInstallation;
 use crate::tui::TUI;
 
@@ -97,61 +97,60 @@ pub const EXAMPLE_CONFIG_FILE: &str = r#"{
   ]
 }"#;
 
-pub fn must_load_systems(tui: &mut TUI) -> Systems {
+//Loads the systems from Config.json
+fn load_systems() -> Result<Systems, Error> {
     let path = Path::new(&CONFIG_FILE_NAME);
     if !path.exists() {
-        tui.write_errorln(format!("file {} is missing. Please add file before using the application", &CONFIG_FILE_NAME));
-        tui.write_warnln("Consider looking into the help section for further information");
-        tui.show_main_menu();
+        return Err(new_error(vec![
+            format!("file {} is missing. Please add file before using the application", &CONFIG_FILE_NAME),
+            "Consider looking into the help section for further information".to_string(),
+        ]));
     }
-
-    let config_file = std::fs::read_to_string(path).unwrap_or_else(|e| {
-        tui.write_errorln(format!("Could not read file {}:\n{}", &CONFIG_FILE_NAME, e));
-        tui.show_main_menu();
-        panic!("Unexpected end of program");
-    });
-
-    serde_json::from_str(&config_file).unwrap_or_else(|e| {
-        tui.write_errorln(format!("File {} is bad formatted: {}", &CONFIG_FILE_NAME, e));
-        tui.write_warnln("Consider looking into the help section for further information");
-        tui.show_main_menu();
-        panic!("Unexpected end of program");
-    })
+    Ok(serde_json::from_str(&std::fs::read_to_string(path)?)?)
 }
 
-pub fn load_validated_consoles_and_local_installations(tui: &mut TUI) -> (Vec<Console>, Vec<LocalInstallation>) {
-    let systems = must_load_systems(tui);
-
-    let mut consoles = Vec::new();
-    if systems.consoles.is_some() {
-        for console in systems.consoles.unwrap().into_iter() {
-            if console.validate() {
-                consoles.push(console)
+//Loads all systems from config file, prints errors if available and returns valid entries as well as a list of errors that should just be warnings
+pub fn load_validated_consoles_and_local_installations(tui: &mut TUI) -> Result<(Vec<Console>, Vec<LocalInstallation>, Vec<Error>), Error> {
+    match load_systems() {
+        Ok(mut systems) => {
+            let mut warnings = Vec::new();
+            let mut consoles = Vec::new();
+            if systems.consoles.is_some() {
+                for console in systems.consoles.unwrap().into_iter() {
+                    match console.validate() {
+                        Ok(_) => consoles.push(console),
+                        Err(e) => warnings.push(e),
+                    }
+                }
             }
+            let mut local_installations = Vec::new();
+            if systems.local_installations.is_some() {
+                for local_installation in systems.local_installations.unwrap().into_iter() {
+                    match local_installation.validate() {
+                        Ok(_) => local_installations.push(local_installation),
+                        Err(e) => warnings.push(e)
+                    }
+                }
+            }
+
+            Ok((consoles, local_installations, warnings))
+        }
+        Err(err) => {
+            Err(new_error_j(format!("could not read {}", CONFIG_FILE_NAME), err))
         }
     }
-
-    let mut local_installations = Vec::new();
-    if systems.local_installations.is_some() {
-        for local_installation in systems.local_installations.unwrap().into_iter() {
-            if local_installation.validate(tui) {
-                local_installations.push(local_installation);
-            }
-        }
-    }
-
-    (consoles, local_installations)
 }
 
+//Creates a config file for the user with example data
 pub fn create_config_json() -> Result<String, Error> {
     let path = Path::new(&CONFIG_FILE_NAME);
     if path.exists() {
-        return Err(new_error(format!("{} already exists", &CONFIG_FILE_NAME)));
+        return Err(new_error_s(format!("{} already exists", &CONFIG_FILE_NAME)));
     }
     File::create(path)?.write_all(EXAMPLE_CONFIG_FILE.as_bytes())?;
 
     Ok(match std::env::current_dir() {
-        Ok( dir) => format!("{} created!", dir.join(path).display()),
+        Ok(dir) => format!("{} created!", dir.join(path).display()),
         Err(_) => format!("{} created!", path.display())
     })
 }

@@ -9,6 +9,7 @@ use crossterm::style::{Attribute, ResetColor, SetAttribute};
 use crossterm::terminal::{Clear, ClearType, enable_raw_mode};
 
 use crate::console::Console;
+use crate::error::Error;
 use crate::local_installation::LocalInstallation;
 use crate::systems::{CONFIG_FILE_NAME, create_config_json, EXAMPLE_CONFIG_FILE, load_validated_consoles_and_local_installations};
 
@@ -84,20 +85,36 @@ impl TUI {
     //Shows a list of available systems to the user and lets him choose what system (or all) he wants to backup.
     pub fn show_choose_system_to_backup(&mut self) -> MenuItem {
         self.write_title("Choose system to backup");
-        let (consoles, local_installations) = load_validated_consoles_and_local_installations(self);
-        if consoles.len() == 0 && local_installations.len() == 0 {
-            return self.show_and_confirm_error(vec![format!("No valid systems found for backup in {}", CONFIG_FILE_NAME), format!("Consider looking in the {} menu", MenuItem::Help.text()), "There may be error messages printed out in the console to help you find what you did wrong".to_string()], MenuItem::Home, false);
-        }
+        match load_validated_consoles_and_local_installations(self) {
+            Ok((consoles, local_installations, warnings)) => {
+                if consoles.len() == 0 && local_installations.len() == 0 {
+                    return self.show_and_confirm_error(vec![format!("No valid systems found for backup in {}", CONFIG_FILE_NAME), format!("Consider looking in the {} menu", MenuItem::Help.text()), "There may be error messages printed out in the console to help you find what you did wrong".to_string()], MenuItem::Home, false);
+                }
+                if warnings.len() > 0 {
+                    let mut w = Vec::new();
+                    for e in warnings.into_iter() {
+                        for e in e.texts().into_iter() {
+                            w.push(e);
+                        }
+                        w.push("".to_string());
+                    }
+                    self.show_and_confirm_warning(w);
+                }
 
-        let mut menu = vec![MenuItem::BackupAllSystems(consoles.clone(), local_installations.clone())];
+                let mut menu = vec![MenuItem::BackupAllSystems(consoles.clone(), local_installations.clone())];
 
-        for console in consoles.into_iter() {
-            menu.push(MenuItem::BackupConsole(console));
+                for console in consoles.into_iter() {
+                    menu.push(MenuItem::BackupConsole(console));
+                }
+                for local_installation in local_installations.into_iter() {
+                    menu.push(MenuItem::BackupLocalInstallation(local_installation));
+                }
+                self.show_menu(menu, MenuItem::ChooseBackupSystem)
+            }
+            Err(err) => {
+                self.show_and_confirm_error(err.texts(), MenuItem::Home, true)
+            }
         }
-        for local_installation in local_installations.into_iter() {
-            menu.push(MenuItem::BackupLocalInstallation(local_installation));
-        }
-        self.show_menu(menu, MenuItem::ChooseBackupSystem)
     }
 
     //Clears the console and then writes a title with separator lines in a constant styling
@@ -261,6 +278,7 @@ impl TUI {
             let _ = self.stdout.execute(Clear(ClearType::All));
             let _ = self.stdout.execute(MoveTo(0, 0));
         }
+        let _ = self.stdout.execute(SetAttribute(Attribute::Reset));
         let _ = self.stdout.execute(SetAttribute(Attribute::Bold));
         let _ = self.stdout.execute(SetForegroundColor(Color::Red));
         let _ = self.stdout.write(SEPARATOR_LINE);
@@ -275,6 +293,14 @@ impl TUI {
             let _ = self.write_errorln(text);
         }
         self.wait_for_any_key(menu_item)
+    }
+
+    //Shows a list of warnings and wait for user to press enter before continuing
+    pub fn show_and_confirm_warning<S: AsRef<str>>(&mut self, texts: Vec<S>) {
+        for text in texts.iter() {
+            let _ = self.write_warnln(text);
+        }
+        let _ = self.wait_for_any_key(MenuItem::Home);
     }
 
     //Prints Press any key to continue and passes the menu_item provided back when the user enters any key

@@ -1,5 +1,6 @@
 use serde::*;
 
+use crate::error::Error;
 use crate::systems::BackupRelPath;
 
 #[derive(Debug, Deserialize, Clone)]
@@ -13,8 +14,8 @@ pub struct Console {
 }
 
 impl Console {
-    pub fn validate(&self) -> bool {
-        true
+    pub fn validate(&self) -> Result<(), Error> {
+        Ok(())
     }
     pub fn backup(&self) -> bool { return false; }
 }
