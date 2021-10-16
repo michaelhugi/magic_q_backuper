@@ -1,4 +1,4 @@
-use crate::tui::{MenuItem, new_tui};
+use crate::tui::{MenuItem, TUI};
 
 mod console;
 mod tui;
@@ -6,10 +6,11 @@ mod systems;
 mod local_installation;
 mod error;
 mod zip;
+mod zip_name;
 
 
 fn main() {
-    let mut tui = new_tui();
+    let mut tui = TUI::new();
     let mut current_menu_item = MenuItem::Home;
     loop {
         current_menu_item = match current_menu_item {
@@ -23,8 +24,8 @@ fn main() {
             MenuItem::BackupConsole(_) => unimplemented!(),
             MenuItem::BackupLocalInstallation(local_installation) => {
                 match local_installation.backup(&mut tui) {
-                    Ok(path) => {
-                        tui.show_and_confirm_success(vec![path], MenuItem::ChooseBackupSystem)
+                    Ok(success_message) => {
+                        tui.show_and_confirm_success(vec![success_message], MenuItem::ChooseBackupSystem)
                     }
                     Err(err) => {
                         tui.show_and_confirm_error(err.texts(), MenuItem::ChooseBackupSystem, true)

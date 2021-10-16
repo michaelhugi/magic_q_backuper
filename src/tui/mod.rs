@@ -22,19 +22,20 @@ pub struct TUI {
     stdin: Stdin,
 }
 
-//New Terminal UI
-pub fn new_tui() -> TUI {
-    let stdout = stdout();
-    // enable_raw_mode().unwrap();
-    let stdin = stdin();
-    TUI {
-        stdout,
-        stdin,
-    }
-}
 
 //All possible entry points to parts of the program
 impl TUI {
+    //New Terminal UI
+    pub fn new() -> TUI {
+        let stdout = stdout();
+        // enable_raw_mode().unwrap();
+        let stdin = stdin();
+        TUI {
+            stdout,
+            stdin,
+        }
+    }
+
     //Shows and handles the main menu
     pub fn show_main_menu(&mut self) -> MenuItem {
         self.write_title("Welcome to MagicQ Backuper");
@@ -85,13 +86,13 @@ impl TUI {
     pub fn show_choose_system_to_backup(&mut self) -> MenuItem {
         self.write_title("Choose system to backup");
         match load_validated_consoles_and_local_installations() {
-            Ok((consoles, local_installations, warnings)) => {
-                if consoles.len() == 0 && local_installations.len() == 0 {
+            Ok(valid_items) => {
+                if valid_items.is_empty() {
                     return self.show_and_confirm_error(vec![format!("No valid systems found for backup in {}", CONFIG_FILE_NAME), format!("Consider looking in the {} menu", MenuItem::Help.text()), "There may be error messages printed out in the console to help you find what you did wrong".to_string()], MenuItem::Home, false);
                 }
-                if warnings.len() > 0 {
+                if !valid_items.warnings.is_empty() {
                     let mut w = Vec::new();
-                    for e in warnings.into_iter() {
+                    for e in valid_items.warnings.into_iter() {
                         for e in e.texts().into_iter() {
                             w.push(e);
                         }
@@ -100,12 +101,12 @@ impl TUI {
                     self.show_and_confirm_warning(w);
                 }
 
-                let mut menu = vec![MenuItem::BackupAllSystems(consoles.clone(), local_installations.clone())];
+                let mut menu = vec![MenuItem::BackupAllSystems(valid_items.consoles.clone(), valid_items.local_installations.clone())];
 
-                for console in consoles.into_iter() {
+                for console in valid_items.consoles.into_iter() {
                     menu.push(MenuItem::BackupConsole(console));
                 }
-                for local_installation in local_installations.into_iter() {
+                for local_installation in valid_items.local_installations.into_iter() {
                     menu.push(MenuItem::BackupLocalInstallation(local_installation));
                 }
                 self.show_menu(menu, MenuItem::ChooseBackupSystem)
@@ -146,7 +147,7 @@ impl TUI {
         let _ = self.stdout.execute(SetAttribute(Attribute::Reset));
         let _ = self.stdout.execute(SetForegroundColor(Color::Red));
         let _ = self.stdout.flush();
-        let _ = self.stdout.write(format!("ERROR: {}\n", text.as_ref()).as_bytes());
+        let _ = self.stdout.write(format!("{}\n", text.as_ref()).as_bytes());
     }
     //Writes a line in red to the command outpout
     pub fn write_success<S: AsRef<str>>(&mut self, text: S) {
@@ -216,7 +217,7 @@ impl TUI {
         let _ = self.stdout.write("Waiting for user input...".as_bytes());
         let _ = self.stdout.execute(SetAttribute(Attribute::Reset));
         let mut input = String::new();
-        self.stdin.read_line(&mut input).ok().expect("Unexpected program error");
+        self.stdin.read_line(&mut input).expect("Unexpected program error");
         let mut input = input.trim().to_string().parse().unwrap_or(usize::MAX);
         if input == exit_program_index {
             std::process::exit(0);

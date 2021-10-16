@@ -7,7 +7,6 @@ use zip::result::ZipError;
 pub enum Error {
     IOError(std::io::Error),
     SerdeJsonError(serde_json::Error),
-    WalkdirError(walkdir::Error),
     StripPrefixError(StripPrefixError),
     ZipError(ZipError),
     Custom(Vec<String>),
@@ -18,7 +17,6 @@ impl Display for Error {
         match self {
             Error::IOError(e) => e.fmt(f),
             Error::SerdeJsonError(e) => e.fmt(f),
-            Error::WalkdirError(e) => e.fmt(f),
             Error::StripPrefixError(e) => e.fmt(f),
             Error::ZipError(e) => e.fmt(f),
             Error::Custom(e) => {
@@ -36,7 +34,6 @@ impl Error {
     pub fn texts(self) -> Vec<String> {
         match self {
             Error::IOError(e) => vec![e.to_string()],
-            Error::WalkdirError(e) => vec![e.to_string()],
             Error::SerdeJsonError(e) => vec![e.to_string()],
             Error::StripPrefixError(e) => vec![e.to_string()],
             Error::ZipError(e) => vec![e.to_string()],
@@ -69,32 +66,30 @@ impl From<ZipError> for Error {
     }
 }
 
-impl From<walkdir::Error> for Error {
-    fn from(e: walkdir::Error) -> Self {
-        Error::WalkdirError(e)
-    }
-}
-
 impl std::error::Error for Error {}
 
-pub fn new_error<S: AsRef<str>>(text: Vec<S>) -> Error {
-    let mut v = Vec::new();
-    for text in text.into_iter() {
-        v.push(text.as_ref().to_string());
+impl Error {
+    pub fn new<S: AsRef<str>>(text: Vec<S>) -> Self {
+        let mut v = Vec::new();
+        for text in text.into_iter() {
+            v.push(text.as_ref().to_string());
+        }
+        Error::Custom(v)
     }
-    Error::Custom(v)
-}
-
-pub fn new_error_s<S: AsRef<str>>(text: S) -> Error {
-    Error::Custom(vec![text.as_ref().to_string()])
-}
-
-
-pub fn new_error_j<S: AsRef<str>>(text: S, cause: Error) -> Error {
-    let mut v = Vec::new();
-    v.push(text.as_ref().to_string());
-    for t in cause.texts().into_iter() {
-        v.push(t);
+    pub fn new_s<S: AsRef<str>>(text: S) -> Error {
+        Error::Custom(vec![text.as_ref().to_string()])
     }
-    Error::Custom(v)
+    pub fn new_j<S: AsRef<str>>(text: S, cause: Error) -> Error {
+        let mut v = vec![text.as_ref().to_string()];
+        for t in cause.texts().into_iter() {
+            v.push(t);
+        }
+        Error::Custom(v)
+    }
 }
+
+
+
+
+
+

@@ -5,7 +5,7 @@ use std::path::Path;
 use serde::*;
 
 use crate::console::Console;
-use crate::error::{Error, new_error, new_error_j, new_error_s};
+use crate::error::Error;
 use crate::local_installation::LocalInstallation;
 
 #[derive(Debug, Deserialize)]
@@ -17,6 +17,7 @@ pub struct Systems {
 
 #[derive(Debug, Deserialize, Clone)]
 pub struct BackupRelPath {
+    pub excluded_files: Option<Vec<String>>,
     pub rel_path: String,
     pub include_subfolders: bool,
 }
@@ -48,6 +49,10 @@ pub const EXAMPLE_CONFIG_FILE: &str = r#"{
           "include_subfolders": false
         },
         {
+          "excluded_files":[
+            "heads.all",
+            "*.all"
+          ],
           "rel_path": "show",
           "include_subfolders": false
         }
@@ -75,6 +80,10 @@ pub const EXAMPLE_CONFIG_FILE: &str = r#"{
       "dest": "C:\\TestbackupMq",
       "backup_rel_paths": [
         {
+          "excluded_files":[
+            "heads.all",
+            "*.sbk"
+          ],
           "rel_path": "show",
           "include_subfolders": false
         },
@@ -102,7 +111,7 @@ pub const EXAMPLE_CONFIG_FILE: &str = r#"{
 fn load_systems() -> Result<Systems, Error> {
     let path = Path::new(&CONFIG_FILE_NAME);
     if !path.exists() {
-        return Err(new_error(vec![
+        return Err(Error::new(vec![
             format!("file {} is missing. Please add file before using the application", &CONFIG_FILE_NAME),
             "Consider looking into the help section for further information".to_string(),
         ]));
@@ -110,8 +119,21 @@ fn load_systems() -> Result<Systems, Error> {
     Ok(serde_json::from_str(&std::fs::read_to_string(path)?)?)
 }
 
+//Holds all valid specified consoles local installations and warnings about not valid items
+pub struct ValidConsolesAndLocalInstallations {
+    pub consoles: Vec<Console>,
+    pub local_installations: Vec<LocalInstallation>,
+    pub warnings: Vec<Error>,
+}
+
+impl ValidConsolesAndLocalInstallations {
+    pub fn is_empty(&self) -> bool {
+        self.consoles.is_empty() && self.local_installations.is_empty()
+    }
+}
+
 //Loads all systems from config file, prints errors if available and returns valid entries as well as a list of errors that should just be warnings
-pub fn load_validated_consoles_and_local_installations() -> Result<(Vec<Console>, Vec<LocalInstallation>, Vec<Error>), Error> {
+pub fn load_validated_consoles_and_local_installations() -> Result<ValidConsolesAndLocalInstallations, Error> {
     match load_systems() {
         Ok(systems) => {
             let mut warnings = Vec::new();
@@ -134,10 +156,14 @@ pub fn load_validated_consoles_and_local_installations() -> Result<(Vec<Console>
                 }
             }
 
-            Ok((consoles, local_installations, warnings))
+            Ok(ValidConsolesAndLocalInstallations {
+                consoles,
+                local_installations,
+                warnings,
+            })
         }
         Err(err) => {
-            Err(new_error_j(format!("could not read {}", CONFIG_FILE_NAME), err))
+            Err(Error::new_j(format!("could not read {}", CONFIG_FILE_NAME), err))
         }
     }
 }
@@ -146,7 +172,7 @@ pub fn load_validated_consoles_and_local_installations() -> Result<(Vec<Console>
 pub fn create_config_json() -> Result<String, Error> {
     let path = Path::new(&CONFIG_FILE_NAME);
     if path.exists() {
-        return Err(new_error_s(format!("{} already exists", &CONFIG_FILE_NAME)));
+        return Err(Error::new_s(format!("{} already exists", &CONFIG_FILE_NAME)));
     }
     File::create(path)?.write_all(EXAMPLE_CONFIG_FILE.as_bytes())?;
 
