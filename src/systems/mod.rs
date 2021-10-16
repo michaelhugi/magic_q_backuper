@@ -7,7 +7,6 @@ use serde::*;
 use crate::console::Console;
 use crate::error::{Error, new_error, new_error_j, new_error_s};
 use crate::local_installation::LocalInstallation;
-use crate::tui::TUI;
 
 #[derive(Debug, Deserialize)]
 pub struct Systems {
@@ -112,9 +111,9 @@ fn load_systems() -> Result<Systems, Error> {
 }
 
 //Loads all systems from config file, prints errors if available and returns valid entries as well as a list of errors that should just be warnings
-pub fn load_validated_consoles_and_local_installations(tui: &mut TUI) -> Result<(Vec<Console>, Vec<LocalInstallation>, Vec<Error>), Error> {
+pub fn load_validated_consoles_and_local_installations() -> Result<(Vec<Console>, Vec<LocalInstallation>, Vec<Error>), Error> {
     match load_systems() {
-        Ok(mut systems) => {
+        Ok(systems) => {
             let mut warnings = Vec::new();
             let mut consoles = Vec::new();
             if systems.consoles.is_some() {

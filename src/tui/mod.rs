@@ -6,10 +6,9 @@ use std::io::{Stdin, Stdout};
 use crossterm::{ExecutableCommand, style::{Color, SetForegroundColor}};
 use crossterm::cursor::MoveTo;
 use crossterm::style::{Attribute, ResetColor, SetAttribute};
-use crossterm::terminal::{Clear, ClearType, enable_raw_mode};
+use crossterm::terminal::{Clear, ClearType};
 
 use crate::console::Console;
-use crate::error::Error;
 use crate::local_installation::LocalInstallation;
 use crate::systems::{CONFIG_FILE_NAME, create_config_json, EXAMPLE_CONFIG_FILE, load_validated_consoles_and_local_installations};
 
@@ -85,7 +84,7 @@ impl TUI {
     //Shows a list of available systems to the user and lets him choose what system (or all) he wants to backup.
     pub fn show_choose_system_to_backup(&mut self) -> MenuItem {
         self.write_title("Choose system to backup");
-        match load_validated_consoles_and_local_installations(self) {
+        match load_validated_consoles_and_local_installations() {
             Ok((consoles, local_installations, warnings)) => {
                 if consoles.len() == 0 && local_installations.len() == 0 {
                     return self.show_and_confirm_error(vec![format!("No valid systems found for backup in {}", CONFIG_FILE_NAME), format!("Consider looking in the {} menu", MenuItem::Help.text()), "There may be error messages printed out in the console to help you find what you did wrong".to_string()], MenuItem::Home, false);
@@ -134,14 +133,6 @@ impl TUI {
         let _ = self.stdout.execute(SetAttribute(Attribute::Reset));
     }
 
-    //Simply writes text without newline in standard style and color to the command outpout
-    pub fn write<S: AsRef<str>>(&mut self, text: S) {
-        let _ = self.stdout.execute(SetAttribute(Attribute::Reset));
-        let _ = self.stdout.execute(ResetColor);
-        let _ = self.stdout.flush();
-        let _ = self.stdout.write(text.as_ref().as_bytes());
-    }
-
     //Simply writes a line in standard style and color to the command outpout
     pub fn writeln<S: AsRef<str>>(&mut self, text: S) {
         let _ = self.stdout.execute(SetAttribute(Attribute::Reset));
@@ -184,27 +175,6 @@ impl TUI {
         let _ = self.stdout.flush();
         print!("\r{}", task.as_ref());
         let _ = self.stdout.flush();
-    }
-
-    //Writes process to the cmd output and replaces it's content in the cmd-line so not for every refresh a new line is paintet
-    //TODO: make it smarter!
-    pub fn write_progress(&mut self, done: &f64, total: &f64, last_percentage: &usize, task: &str) -> usize {
-        let _ = self.stdout.execute(SetAttribute(Attribute::Reset));
-        let _ = self.stdout.flush();
-        let total = if total == &0f64 {
-            &1f64
-        } else {
-            total
-        };
-        let percentage = (done / total * 100f64) as usize;
-        if last_percentage == &percentage {
-            return percentage;
-        }
-        let _ = self.stdout.execute(SetForegroundColor(Color::Green));
-        print!("\rProcessing {}%... {}", percentage, task);
-        let _ = self.stdout.flush().unwrap();
-
-        return percentage;
     }
 
     //Shows any generic menu. The current_item will be reused in case there is an invalid input
@@ -314,7 +284,7 @@ impl TUI {
         let _ = self.stdout.write(EMPTY_LINE);
         self.writeln("Press enter to continue...");
         let mut buf = String::new();
-        self.stdin.read_line(&mut buf);
+        let _ = self.stdin.read_line(&mut buf);
         menu_item
     }
 }

@@ -1,9 +1,6 @@
-use std::io::Error;
-
 use crate::tui::{MenuItem, new_tui};
 
 mod console;
-mod copy;
 mod tui;
 mod systems;
 mod local_installation;

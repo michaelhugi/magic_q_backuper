@@ -17,5 +17,4 @@ impl Console {
     pub fn validate(&self) -> Result<(), Error> {
         Ok(())
     }
-    pub fn backup(&self) -> bool { return false; }
 }
