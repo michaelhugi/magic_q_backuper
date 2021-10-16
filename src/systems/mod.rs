@@ -24,7 +24,11 @@ pub struct BackupRelPath {
 
 pub const CONFIG_FILE_NAME: &str = "config.json";
 
-pub const EXAMPLE_CONFIG_FILE: &str = r#"{
+pub fn get_example_config_file() -> String {
+    EXAMPLE_CONFIG_FILE_WITHOUT_UN.replace("{your_username}", whoami::username().as_str())
+}
+
+const EXAMPLE_CONFIG_FILE_WITHOUT_UN: &str = r#"{
   "consoles": [
     {
       "name": "My Mq500M",
@@ -57,7 +61,7 @@ pub const EXAMPLE_CONFIG_FILE: &str = r#"{
           "include_subfolders": false
         }
       ],
-      "dest": "C:\\TestbackupMq"
+      "dest": "C:\\PathToYourGoogleDriveFolder"
     },
     {
       "name": "My Mq80",
@@ -70,14 +74,14 @@ pub const EXAMPLE_CONFIG_FILE: &str = r#"{
           "include_subfolders": true
         }
       ],
-      "dest": "C:\\TestbackupMq"
+      "dest": "C:\\PathToYourGoogleDriveFolder"
     }
   ],
   "local_installations": [
     {
       "name": "MagicQ on Pc",
-      "src": "C:\\Users\\michael.hugi\\Documents\\MagicQ",
-      "dest": "C:\\TestbackupMq",
+      "src": "C:\\Users\\{your_username}\\Documents\\MagicQ",
+      "dest": "C:\\PathToYourGoogleDriveFolder",
       "backup_rel_paths": [
         {
           "excluded_files":[
@@ -95,8 +99,8 @@ pub const EXAMPLE_CONFIG_FILE: &str = r#"{
     },
     {
       "name": "Capture",
-      "src": "D:\\mhugi\\Documents\\Capture",
-      "dest": "C:\\TestbackupMq",
+      "src": "D:\\{your_username}\\Documents\\Capture",
+      "dest": "C:\\PathToYourGoogleDriveFolder",
       "backup_rel_paths": [
         {
           "rel_path": "",
@@ -174,7 +178,7 @@ pub fn create_config_json() -> Result<String, Error> {
     if path.exists() {
         return Err(Error::new_s(format!("{} already exists", &CONFIG_FILE_NAME)));
     }
-    File::create(path)?.write_all(EXAMPLE_CONFIG_FILE.as_bytes())?;
+    File::create(path)?.write_all(get_example_config_file().as_bytes())?;
 
     Ok(match std::env::current_dir() {
         Ok(dir) => format!("{} created!", dir.join(path).display()),

@@ -10,7 +10,7 @@ use crossterm::terminal::{Clear, ClearType};
 
 use crate::console::Console;
 use crate::local_installation::LocalInstallation;
-use crate::systems::{CONFIG_FILE_NAME, create_config_json, EXAMPLE_CONFIG_FILE, load_validated_consoles_and_local_installations};
+use crate::systems::{CONFIG_FILE_NAME, create_config_json, get_example_config_file, load_validated_consoles_and_local_installations};
 
 pub const SEPARATOR_LINE: &[u8] = "---------------------------------------------------------------------\n".as_bytes();
 pub const EMPTY_LINE: &[u8] = "\n".as_bytes();
@@ -52,6 +52,7 @@ impl TUI {
         self.writeln("The destination location is most likely your local folder to google-drive or dropbox so your files get synced to the cloud automatically");
         self.writeln("");
         self.writeln(format!("Note that you need to specify a {} file to the location where this program runs. In this file you specify all the systems that are on this computer or in the network of this computer", CONFIG_FILE_NAME));
+        self.writeln("If you are unfamiliar with json file format consider downloading notepad++ to edit the file as it has code highlighting for json files");
         self.show_menu(vec![MenuItem::ShowConfigExample, MenuItem::ShowConfigLocation, MenuItem::CreateConfigExample], MenuItem::Help)
     }
     //Shows the user where the config should be located and shows a menu for next actions
@@ -70,7 +71,7 @@ impl TUI {
     //Shows the user an example config and shows a menu for next actions
     pub fn show_config_example(&mut self) -> MenuItem {
         self.write_title(format!("Example of {}", CONFIG_FILE_NAME));
-        self.write_success(EXAMPLE_CONFIG_FILE);
+        self.write_success(get_example_config_file());
         self.show_menu(vec![MenuItem::Help, MenuItem::CreateConfigExample], MenuItem::ShowConfigExample)
     }
 
