@@ -53,7 +53,7 @@ impl TUI {
         self.writeln(format!("Note that you need to specify a {} file to the location where this program runs. In this file you specify all the systems that are on this computer or in the network of this computer", CONFIG_FILE_NAME));
         self.writeln("If you are unfamiliar with json file format consider downloading notepad++ to edit the file as it has code highlighting for json files");
         self.writeln("");
-        self.writeln("To access any console you need to crate a virtual drive (with stored username and password) on your computer");
+        self.writeln("To access any console you need to set the src like \\\\\\\\192.168.0.235\\\\mangicq. Note that your pc must already have been connected to the location because of the username and password");
 
         self.show_menu(vec![MenuItem::ShowConfigExample, MenuItem::ShowConfigLocation, MenuItem::CreateConfigExample], MenuItem::Help)
     }
@@ -88,6 +88,7 @@ impl TUI {
     //Shows a list of available systems to the user and lets him choose what system (or all) he wants to backup.
     pub fn show_choose_system_to_backup(&mut self) -> MenuItem {
         self.write_title("Choose system to backup");
+        self.writeln("Calculating systems. Please wait...");
         match load_validated_consoles_and_local_installations() {
             Ok(valid_items) => {
                 if valid_items.is_empty() {
@@ -174,7 +175,7 @@ impl TUI {
     pub fn update_current_task<S: AsRef<str>>(&mut self, task: S) {
         let _ = self.stdout.execute(SetAttribute(Attribute::Reset));
         let _ = self.stdout.flush();
-        print!("\r{}", task.as_ref());
+        print!("\r{}                                                                                                                                      ", task.as_ref());
         let _ = self.stdout.flush();
     }
 
