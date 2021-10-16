@@ -1,21 +1,21 @@
 use std::fs::{create_dir, create_dir_all};
 use std::path::{Path, PathBuf};
 
-use crate::cmdline::Cmdline;
-use crate::config::BackupRelPath;
+use crate::systems::BackupRelPath;
+use crate::tui::TUI;
 
-pub(crate) struct CopyQueueFolder<SRC: AsRef<Path>, DEST: AsRef<Path>> {
-    pub(crate) src_path: SRC,
-    pub(crate) dest_path: DEST,
-    pub(crate) size_without_sub_folders: f64,
+pub struct CopyQueueFolder<SRC: AsRef<Path>, DEST: AsRef<Path>> {
+    pub src_path: SRC,
+    pub dest_path: DEST,
+    pub size_without_sub_folders: f64,
 }
 
 impl<SRC: AsRef<Path>, DEST: AsRef<Path>> CopyQueueFolder<SRC, DEST> {
-    pub(crate) fn readable_src_path(&self) -> &str {
+    pub fn readable_src_path(&self) -> &str {
         self.src_path.as_ref().as_os_str().to_str().unwrap_or("There may be special chars in your path")
     }
 
-    pub(crate) fn backup_all_files(&self, size_done: &f64, total_size: &f64, last_percentage: &usize, cmd: &mut Cmdline) -> Result<(f64, usize), std::io::Error> {
+    pub fn backup_all_files(&self, size_done: &f64, total_size: &f64, last_percentage: &usize, tui: &mut TUI) -> Result<(f64, usize), std::io::Error> {
         let mut size_done = size_done.clone();
         let mut last_percentage = last_percentage.clone();
         let task = format!("Backing up {}", &self.readable_src_path());
@@ -32,7 +32,7 @@ impl<SRC: AsRef<Path>, DEST: AsRef<Path>> CopyQueueFolder<SRC, DEST> {
                     let dest = dest.join(file_name);
                     std::fs::copy(&entry, &dest)?;
                     size_done += entry.metadata()?.len() as f64;
-                    last_percentage = cmd.write_percentage(&size_done, total_size, &last_percentage, task.as_str());
+                    last_percentage = tui.write_progress(&size_done, total_size, &last_percentage, task.as_str());
                 }
             }
         } else {
@@ -42,13 +42,13 @@ impl<SRC: AsRef<Path>, DEST: AsRef<Path>> CopyQueueFolder<SRC, DEST> {
             }
             std::fs::copy(&src, &dest)?;
             size_done += src.metadata()?.len() as f64;
-            last_percentage = cmd.write_percentage(&size_done, total_size, &last_percentage, task.as_str());
+            last_percentage = tui.write_progress(&size_done, total_size, &last_percentage, task.as_str());
         }
         Ok((size_done, last_percentage))
     }
 }
 
-pub(crate) fn new_copy_queue_folder<SRC: AsRef<Path>, DEST: AsRef<Path>>(src_path: SRC, dest_path: DEST) -> Result<CopyQueueFolder<SRC, DEST>, std::io::Error> {
+pub fn new_copy_queue_folder<SRC: AsRef<Path>, DEST: AsRef<Path>>(src_path: SRC, dest_path: DEST) -> Result<CopyQueueFolder<SRC, DEST>, std::io::Error> {
     let mut size_without_sub_folders = 0f64;
     if src_path.as_ref().is_file() {
         size_without_sub_folders = src_path.as_ref().metadata()?.len() as f64;
@@ -68,7 +68,7 @@ pub(crate) fn new_copy_queue_folder<SRC: AsRef<Path>, DEST: AsRef<Path>>(src_pat
 }
 
 
-pub(crate) fn collect_copy_folders(requested_copy_folders: &Vec<BackupRelPath>, src_root: PathBuf, dest_root: PathBuf) -> Result<Vec<CopyQueueFolder<PathBuf, PathBuf>>, std::io::Error> {
+pub fn collect_copy_folders(requested_copy_folders: &Vec<BackupRelPath>, src_root: PathBuf, dest_root: PathBuf) -> Result<Vec<CopyQueueFolder<PathBuf, PathBuf>>, std::io::Error> {
     let mut out_folders = Vec::new();
     let mut requested_copy_folders = requested_copy_folders.clone();
     let src_root_size = PathBuf::from(&src_root).components().count();

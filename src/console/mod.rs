@@ -1,20 +1,20 @@
 use serde::*;
 
-use crate::config::BackupRelPath;
+use crate::systems::BackupRelPath;
 
-#[derive(Debug, Deserialize)]
-pub(crate) struct Console {
-    pub(crate) name: String,
-    pub(crate) ip: String,
-    pub(crate) backup_rel_paths: Vec<BackupRelPath>,
-    pub(crate) dest: String,
-    pub(crate) username: String,
-    pub(crate) password: String,
+#[derive(Debug, Deserialize, Clone)]
+pub struct Console {
+    pub name: String,
+    pub ip: String,
+    pub backup_rel_paths: Vec<BackupRelPath>,
+    pub dest: String,
+    pub username: String,
+    pub password: String,
 }
 
 impl Console {
-    pub(crate) fn validate(&self) -> bool {
+    pub fn validate(&self) -> bool {
         true
     }
-    pub(crate) fn backup(&self) -> bool { return false; }
+    pub fn backup(&self) -> bool { return false; }
 }
